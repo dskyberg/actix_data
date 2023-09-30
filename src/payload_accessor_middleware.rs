@@ -1,8 +1,3 @@
-use std::{
-    future::{ready, Ready},
-    rc::Rc,
-};
-
 use actix_http::h1::Payload;
 use actix_web::{
     dev::{self, Service, ServiceRequest, ServiceResponse, Transform},
@@ -10,6 +5,10 @@ use actix_web::{
     Error, HttpMessage,
 };
 use futures_util::{future::LocalBoxFuture, stream::StreamExt};
+use std::{
+    future::{ready, Ready},
+    rc::Rc,
+};
 
 use crate::my_obj::MyObj;
 
