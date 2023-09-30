@@ -3,19 +3,26 @@ use std::{
     rc::Rc,
 };
 
+use actix_http::h1::Payload;
 use actix_web::{
     dev::{self, Service, ServiceRequest, ServiceResponse, Transform},
-    web::{BytesMut},
+    web::BytesMut,
     Error, HttpMessage,
 };
-use actix_http::h1::Payload;
 use futures_util::{future::LocalBoxFuture, stream::StreamExt};
 
 use crate::my_obj::MyObj;
 
-pub struct Logging;
+// There are two steps in middleware processing.
+// 1. Middleware initialization, middleware factory gets called with
+//    next service in chain as parameter.
+// 2. Middleware's call method gets called with normal request.
+pub struct PayloadAccessor;
 
-impl<S: 'static, B> Transform<S, ServiceRequest> for Logging
+// Middleware factory is `Transform` trait
+// `S` - type of the next service
+// `B` - type of response's body
+impl<S: 'static, B> Transform<S, ServiceRequest> for PayloadAccessor
 where
     S: Service<ServiceRequest, Response = ServiceResponse<B>, Error = Error>,
     S::Future: 'static,
@@ -24,22 +31,22 @@ where
     type Response = ServiceResponse<B>;
     type Error = Error;
     type InitError = ();
-    type Transform = LoggingMiddleware<S>;
+    type Transform = PayloadAccessorMiddleware<S>;
     type Future = Ready<Result<Self::Transform, Self::InitError>>;
 
     fn new_transform(&self, service: S) -> Self::Future {
-        ready(Ok(LoggingMiddleware {
+        ready(Ok(PayloadAccessorMiddleware {
             service: Rc::new(service),
         }))
     }
 }
 
-pub struct LoggingMiddleware<S> {
+pub struct PayloadAccessorMiddleware<S> {
     // This is special: We need this to avoid lifetime issues.
     service: Rc<S>,
 }
 
-impl<S, B> Service<ServiceRequest> for LoggingMiddleware<S>
+impl<S, B> Service<ServiceRequest> for PayloadAccessorMiddleware<S>
 where
     S: Service<ServiceRequest, Response = ServiceResponse<B>, Error = Error> + 'static,
     S::Future: 'static,
@@ -63,8 +70,8 @@ where
             }
 
             let obj = serde_json::from_slice::<MyObj>(&body)?;
-            log::info!("{:?}",&obj);
-            
+            log::info!("{:?}", &obj);
+
             let (_, mut payload) = Payload::create(true);
             payload.unread_data(body.into());
             req.set_payload(payload.into());
