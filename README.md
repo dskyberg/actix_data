@@ -3,7 +3,9 @@ Example of how to use take_payload and set_payload in acti-web middleware.
 
 This demo follows the Middleware demo at [Actix doc](https://actix.rs/docs/middleware/).
 
-Most of the code is boiler plate to implement the Service and Transform trates for the middleware. There are several examples available that show how to read the request body also.  This crate shows how to return it to the request, so that the downstream route handlers can process the data normally:
+Most of the code is boiler plate to implement the Service and Transform trates for the middleware. There are several examples available that show how to read the request body also.  This crate shows how to return it to the request, so that the downstream route handlers can process the data normally.
+
+The secret is in using [actix_http::h1::Payload](https://docs.rs/actix-http/3.4.0/actix_http/h1/struct.Payload.html) for recreating the request body.
 
 ```rust
             let (_, mut payload) = Payload::create(true);
